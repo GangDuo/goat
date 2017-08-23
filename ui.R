@@ -51,8 +51,8 @@ shinyUI(fluidPage(
         splitLayout(
           tabsetPanel(
             tabPanel("週間売上金額推移", DT::dataTableOutput("tbl_weekly_sales_trends")),
-            tabPanel(textOutput("tab_title_top20"), DT::dataTableOutput("tbl_top20")),
-            tabPanel(textOutput("tab_title_bottom20"), DT::dataTableOutput("tbl_bottom20")),
+            tabPanel(textOutput("tab_title_topn"), DT::dataTableOutput("tbl_topn")),
+            tabPanel(textOutput("tab_title_bottomn"), DT::dataTableOutput("tbl_bottomn")),
             tabPanel("選択行", DT::dataTableOutput('selected'))
           )
         )
