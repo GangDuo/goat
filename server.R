@@ -92,6 +92,45 @@ shinyServer(function(input, output, session) {
     data.result <- weeklyShelfSales %>%
       dplyr::filter(Year == input$year + 2000)
     
+    # もっとましなのが思いつかない
+    if(length(input$family) > 0){
+      codes <- as.vector(unlist(lapply(input$family, function(j) {
+        as.numeric(paste0(substring(unlist(strsplit(j, " "))[1], 1, 2)))
+      })), mode = "list")
+      data.result <- data.result %>%
+        dplyr::filter(Category %in% codes)
+      
+      codes <- as.vector(unlist(lapply(input$family, function(j) {
+        as.numeric(paste0(substring(unlist(strsplit(j, " "))[1], 3, 4)))
+      })), mode = "list")
+      data.result <- data.result %>%
+        dplyr::filter(Division %in% codes)
+      
+      codes <- as.vector(unlist(lapply(input$family, function(j) {
+        as.numeric(paste0(substring(unlist(strsplit(j, " "))[1], 5, 6)))
+      })), mode = "list")
+      data.result <- data.result %>%
+        dplyr::filter(Family %in% codes)
+    } else if(length(input$division) > 0){
+      codes <- as.vector(unlist(lapply(input$division, function(j) {
+        as.numeric(paste0(substring(unlist(strsplit(j, " "))[1], 3, 4)))
+      })), mode = "list")
+      data.result <- data.result %>%
+        dplyr::filter(Category %in% codes)
+      
+      codes <- as.vector(unlist(lapply(input$division, function(j) {
+        as.numeric(paste0(substring(unlist(strsplit(j, " "))[1], 5, 6)))
+      })), mode = "list")
+      data.result <- data.result %>%
+        dplyr::filter(Division %in% codes)
+    } else if(length(input$category) > 0){
+      codes <- as.vector(lapply(input$category, function(i) {
+        pcode <- as.numeric(unlist(strsplit(i, " "))[1])
+      }), mode = "list")
+      data.result <- data.result %>%
+        dplyr::filter(Category %in% codes)
+    }
+    
     data.result <- data.result %>%
       dplyr::group_by(WeekOfYear) %>%
       dplyr::summarise(f1=sum(SalesAmountOfPreviousYear)/1000, f2=sum(SalesAmount)/1000) %>%
