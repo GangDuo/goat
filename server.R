@@ -8,6 +8,7 @@
 #
 
 library(shiny)
+library(dplyr)
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output, session) {
@@ -73,4 +74,45 @@ shinyServer(function(input, output, session) {
     updateSelectInput(session, "family", choices = filterDivisionAsVector())
   })
   
+  #------------------------------------------------------
+  # 最上部グラフ
+  # 単位：千円
+  #------------------------------------------------------
+  db.driver <- dbDriver("MySQL")
+  db.connector <- dbConnect(db.driver,
+                            dbname=config::get("dbname2"),
+                            user=config::get("user2"), password=config::get("password2"),
+                            host=config::get("host"), port=config::get("port")) 
+  dbGetQuery(db.connector, "SET NAMES utf8")
+  weeklyShelfSales <- dbGetQuery(db.connector, config::get('qWeeklyShelfSales'))
+  dbDisconnect(db.connector)
+
+
+  filterWeeklySalesTrends = reactive({
+    data.result <- weeklyShelfSales %>%
+      dplyr::filter(Year == input$year + 2000)
+    
+    data.result <- data.result %>%
+      dplyr::group_by(WeekOfYear) %>%
+      dplyr::summarise(f1=sum(SalesAmountOfPreviousYear)/1000, f2=sum(SalesAmount)/1000) %>%
+      dplyr::select(f1,f2)
+    
+    source <- t(data.result)
+    colnames(source) <- 1:ncol(source)
+    rownames(source) <- c("前年", "本年")
+    
+    return(source)
+  })
+  
+  output$plot_weekly_sales_trends <- renderPlot({
+    source <- filterWeeklySalesTrends()
+    barplot(source,
+            beside = TRUE,
+            col = c("grey", "red"),
+            legend = rownames(source),
+            args.legend = list(x="topright",
+                               bty="n"    # 枠消去
+            ),
+            las=1) # y軸の目盛を90°回転
+  })
 })
