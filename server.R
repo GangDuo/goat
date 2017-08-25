@@ -9,6 +9,7 @@
 
 library(shiny)
 library(dplyr)
+library(DT)
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output, session) {
@@ -154,4 +155,31 @@ shinyServer(function(input, output, session) {
             ),
             las=1) # y軸の目盛を90°回転
   })
+
+  #------------------------------------------------------
+  # グラフのデータソース
+  #------------------------------------------------------
+  filterWeeklySalesTrendsForTbl = reactive({
+    weeklyShelfSales %>%
+      dplyr::filter(Year == input$year + 2000) %>%
+      dplyr::group_by(WeekOfYear, FirstDayOfWeek) %>%
+      dplyr::summarise(f1=sum(SalesAmountOfPreviousYear)/1000
+                       , f2=sum(SalesAmount)/1000) %>%
+      dplyr::select(WeekOfYear, FirstDayOfWeek, f1, f2) %>%
+      dplyr::mutate(FirstDayOfWeek = format(as.Date(FirstDayOfWeek), "%Y-%m-%d"))
+  })
+  
+  output$tbl_weekly_sales_trends = DT::renderDataTable({
+    xs <- filterWeeklySalesTrendsForTbl()
+    colnames(xs) <- c("週", "週の開始日", "前年", "本年")
+    datatable(
+      xs,
+      selection = list(mode = "single"),
+      options = list(searching = FALSE,
+                     ordering = FALSE,
+                     language = list(url = '//cdn.datatables.net/plug-ins/9dcbecd42ad/i18n/Japanese.json')
+      )
+    )
+  })
+  
 })
