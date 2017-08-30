@@ -88,9 +88,8 @@ shinyServer(function(input, output, session) {
   weeklyShelfSales <- dbGetQuery(db.connector, config::get('qWeeklyShelfSales'))
   dbDisconnect(db.connector)
 
-
-  filterWeeklySalesTrends = reactive({
-    data.result <- weeklyShelfSales %>%
+  filterWithUserData <- function(arg) {
+    data.result <- arg %>%
       dplyr::filter(Year == input$year + 2000)
     
     # もっとましなのが思いつかない
@@ -130,7 +129,12 @@ shinyServer(function(input, output, session) {
       }), mode = "list")
       data.result <- data.result %>%
         dplyr::filter(Category %in% codes)
-    }
+    } 
+    return(data.result)
+  }
+
+  filterWeeklySalesTrends = reactive({
+    data.result <- weeklyShelfSales %>% filterWithUserData
     
     data.result <- data.result %>%
       dplyr::group_by(WeekOfYear) %>%
@@ -161,7 +165,7 @@ shinyServer(function(input, output, session) {
   #------------------------------------------------------
   filterWeeklySalesTrendsForTbl = reactive({
     weeklyShelfSales %>%
-      dplyr::filter(Year == input$year + 2000) %>%
+      filterWithUserData %>%
       dplyr::group_by(WeekOfYear, FirstDayOfWeek) %>%
       dplyr::summarise(f1=sum(SalesAmountOfPreviousYear)/1000
                        , f2=sum(SalesAmount)/1000) %>%
