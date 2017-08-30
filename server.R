@@ -171,7 +171,7 @@ shinyServer(function(input, output, session) {
   
   output$tbl_weekly_sales_trends = DT::renderDataTable({
     xs <- filterWeeklySalesTrendsForTbl()
-    colnames(xs) <- c("週", "週の開始日", "前年", "本年")
+    colnames(xs) <- c("週", "週の開始日", "前年[千円]", "本年[千円]")
     datatable(
       xs,
       selection = list(mode = "single"),
@@ -179,7 +179,8 @@ shinyServer(function(input, output, session) {
                      ordering = FALSE,
                      language = list(url = '//cdn.datatables.net/plug-ins/9dcbecd42ad/i18n/Japanese.json')
       )
-    )
+    ) %>%
+      formatCurrency(columns = c("前年[千円]", "本年[千円]"), currency = "",
+                     interval = 3, mark = ",", digits = 0) 
   })
-  
 })
