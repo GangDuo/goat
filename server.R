@@ -187,5 +187,128 @@ shinyServer(function(input, output, session) {
       formatCurrency(columns = c("前年[千円]", "本年[千円]"), currency = "",
                      interval = 3, mark = ",", digits = 0) 
   })
+  
+  #------------------------------------------------------
+  # ランキング
+  #------------------------------------------------------
+  buildTitle = reactive({
+    prefix <- ""
+    
+    year <- input$year
+    if (!is.null(year)) {
+      prefix <- paste(prefix, year, "年")
+    }
+    
+    i <- input$tbl_weekly_sales_trends_rows_selected
+    if (!is.null(i)) {
+      prefix <- paste(prefix, i, "週")
+    }
+    return(prefix)
+  })
+  output$tab_title_topn <- renderText({
+    paste(buildTitle(), "Top20")
+  })
+  output$tab_title_bottomn <-renderText({
+    paste(buildTitle(), "Bottom20")
+  })
+  
+  buildWhere = reactive({
+    where <- sprintf("WHERE Year = %1$d", input$year + 2000)
+    if(!is.null(input$tbl_weekly_sales_trends_rows_selected)){
+      where <- paste(where, sprintf("AND WeekOfYear = %1$d", input$tbl_weekly_sales_trends_rows_selected))
+    }
+    if(length(input$family) > 0){
+      codes <- as.vector(unlist(lapply(input$family, function(j) {
+        as.numeric(paste0(substring(unlist(strsplit(j, " "))[1], 1, 2)))
+      })), mode = "list")
+      codes <- unique(codes)
+      where <- paste(where, 'AND Category IN(', paste(codes, collapse = ','), ')')
+      
+      codes <- as.vector(unlist(lapply(input$family, function(j) {
+        as.numeric(paste0(substring(unlist(strsplit(j, " "))[1], 3, 4)))
+      })), mode = "list")
+      codes <- unique(codes)
+      where <- paste(where, 'AND Division IN(', paste(codes, collapse = ','), ')')
+      
+      codes <- as.vector(unlist(lapply(input$family, function(j) {
+        as.numeric(paste0(substring(unlist(strsplit(j, " "))[1], 5, 6)))
+      })), mode = "list")
+      codes <- unique(codes)
+      where <- paste(where, 'AND Family IN(', paste(codes, collapse = ','), ')')
+    } else if(length(input$division) > 0){
+      codes <- as.vector(unlist(lapply(input$division, function(j) {
+        as.numeric(paste0(substring(unlist(strsplit(j, " "))[1], 3, 4)))
+      })), mode = "list")
+      codes <- unique(codes)
+      where <- paste(where, 'AND Category IN(', paste(codes, collapse = ','), ')')
+      
+      codes <- as.vector(unlist(lapply(input$division, function(j) {
+        as.numeric(paste0(substring(unlist(strsplit(j, " "))[1], 5, 6)))
+      })), mode = "list")
+      codes <- unique(codes)
+      where <- paste(where, 'AND Division IN(', paste(codes, collapse = ','), ')')
+    } else if(length(input$category) > 0){
+      codes <- as.vector(lapply(input$category, function(i) {
+        pcode <- as.numeric(unlist(strsplit(i, " "))[1])
+      }), mode = "list")
+      codes <- unique(codes)
+      where <- paste(where, 'AND Category IN(', paste(codes, collapse = ','), ')')
+    } 
+    return(where)
+  })
+  ranking <- function(order) {
+    db.driver <- dbDriver("MySQL")
+    db.connector <- dbConnect(db.driver,
+                              dbname=config::get("dbname2"),
+                              user=config::get("user2"), password=config::get("password2"),
+                              host=config::get("host"), port=config::get("port")) 
+    dbGetQuery(db.connector, "SET NAMES utf8")
+    result <- dbGetQuery(db.connector,
+                         sprintf(
+                           "SELECT ModelNumber,
+                           TProducts.name,
+                           SUM(SalesAmountOfPreviousYear),
+                           SUM(SalesAmount)
+                           FROM `emother`.`WeeklyShelfSalesLines`
+                           LEFT JOIN `humpty_dumpty`.`TProducts`
+                           ON `TProducts`.`jan` = `WeeklyShelfSalesLines`.`ModelNumber`
+                           %1$s
+                           GROUP BY `ModelNumber`, ProductName
+                           ORDER BY SUM(SalesAmount) %2$s,
+                           SUM(SalesAmountOfPreviousYear) %2$s
+                           LIMIT 20",
+                           buildWhere(),
+                           order)
+    )
+    source <- result #%>% filterWithUserData
+    dbDisconnect(db.connector)  
+    return(source)
+  }
+  
+  renderRankingTable <- function(source){
+    colnames(source) <- c("品番", "品名", "前年", "本年")
+    
+    datatable(
+      source,
+      #style = 'bootstrap',
+      escape = FALSE,# 画像のimgタグ有効にする
+      selection = list(mode = "single"),
+      options = list(searching = FALSE,
+                     ordering = FALSE,
+                     language = list(url = '//cdn.datatables.net/plug-ins/9dcbecd42ad/i18n/Japanese.json')
+      )
+    ) %>%
+      formatCurrency(columns = c("前年", "本年"), currency = "",
+                     interval = 3, mark = ",", digits = 0) 
+  }
+  
+  output$tbl_topn <-DT::renderDataTable({
+    source <- ranking('DESC') %>%
+      renderRankingTable
+  })
+  output$tbl_bottomn <-DT::renderDataTable({
+    source <- ranking("ASC") %>%
+      renderRankingTable
+  })
 
 })
