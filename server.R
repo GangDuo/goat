@@ -11,6 +11,15 @@ library(shiny)
 library(dplyr)
 library(DT)
 
+db.driver <- dbDriver("MySQL")
+db.connector <- dbConnect(db.driver,
+                          dbname=config::get("dbname2"),
+                          user=config::get("user2"), password=config::get("password2"),
+                          host=config::get("host"), port=config::get("port")) 
+dbGetQuery(db.connector, "SET NAMES utf8")
+weeklyShelfSales <- dbGetQuery(db.connector, config::get('qWeeklyShelfSales'))
+dbDisconnect(db.connector)
+
 # Define server logic required to draw a histogram
 shinyServer(function(input, output, session) {
 
@@ -79,15 +88,6 @@ shinyServer(function(input, output, session) {
   # 最上部グラフ
   # 単位：千円
   #------------------------------------------------------
-  db.driver <- dbDriver("MySQL")
-  db.connector <- dbConnect(db.driver,
-                            dbname=config::get("dbname2"),
-                            user=config::get("user2"), password=config::get("password2"),
-                            host=config::get("host"), port=config::get("port")) 
-  dbGetQuery(db.connector, "SET NAMES utf8")
-  weeklyShelfSales <- dbGetQuery(db.connector, config::get('qWeeklyShelfSales'))
-  dbDisconnect(db.connector)
-
   filterWithUserData <- function(arg) {
     data.result <- arg %>%
       dplyr::filter(Year == input$year + 2000)
