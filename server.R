@@ -164,20 +164,20 @@ shinyServer(function(input, output, session) {
   # グラフのデータソース
   #------------------------------------------------------
   filterWeeklySalesTrendsForTbl = reactive({
-    weeklyShelfSales %>%
+    source <- weeklyShelfSales %>%
       filterWithUserData %>%
       dplyr::group_by(WeekOfYear, FirstDayOfWeek) %>%
       dplyr::summarise(f1=sum(SalesAmountOfPreviousYear)/1000
                        , f2=sum(SalesAmount)/1000) %>%
       dplyr::select(WeekOfYear, FirstDayOfWeek, f1, f2) %>%
       dplyr::mutate(FirstDayOfWeek = format(as.Date(FirstDayOfWeek), "%Y-%m-%d"))
+    colnames(source) <- c("週", "週の開始日", "前年[千円]", "本年[千円]")
+    return(source)
   })
   
   output$tbl_weekly_sales_trends = DT::renderDataTable({
-    xs <- filterWeeklySalesTrendsForTbl()
-    colnames(xs) <- c("週", "週の開始日", "前年[千円]", "本年[千円]")
     datatable(
-      xs,
+      filterWeeklySalesTrendsForTbl(),
       selection = list(mode = "single"),
       options = list(searching = FALSE,
                      ordering = FALSE,
@@ -187,4 +187,5 @@ shinyServer(function(input, output, session) {
       formatCurrency(columns = c("前年[千円]", "本年[千円]"), currency = "",
                      interval = 3, mark = ",", digits = 0) 
   })
+
 })
