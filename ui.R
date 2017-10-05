@@ -44,7 +44,7 @@ shinyUI(fluidPage(
         selectInput("division", "小分類", division, NULL, TRUE),
         selectInput("family", "棚名", family, NULL, TRUE),
         selectInput("store", "店舗:", stores, NULL, TRUE),
-        sliderInput("year", "年:", 15, 20, 17)
+        sliderInput("year", "年:", 16, 20, as.integer(format(Sys.Date(), "%y")))
       ),
       
       mainPanel(
