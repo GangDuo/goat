@@ -40,7 +40,7 @@ shinyUI(fluidPage(
     sidebarLayout(
       position = "left",
       sidebarPanel(
-        selectInput("category", "カテゴリ", categories, NULL, TRUE),
+        selectInput("category", "カテゴリ", categories$display_name, NULL, TRUE),
         selectInput("division", "小分類", division, NULL, TRUE),
         selectInput("family", "棚名", family, NULL, TRUE),
         selectInput("store", "店舗:", stores, NULL, TRUE),
